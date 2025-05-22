@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using System.Collections;
 
@@ -56,8 +55,8 @@ public class FirstPersonController : MonoBehaviour
 		//Cursor.visible = false;
 		cameraTransform = Camera.main.transform;
 		rigidBody = GetComponent<Rigidbody>();
-		rigidBody.useGravity = false;
-		rigidBody.constraints = RigidbodyConstraints.FreezeRotation;
+		rigidBody.useGravity = true;
+		rigidBody.freezeRotation = true; // Optional: prevents unwanted rotation
 		capsuleCollider = GetComponent<CapsuleCollider>();
 		Time.fixedDeltaTime = 1f / 60f;
 	}
@@ -174,14 +173,14 @@ public class FirstPersonController : MonoBehaviour
 			return;
 		}
 
-		Vector3 planetCentre = Vector3.zero;
-		Vector3 gravityUp = (rigidBody.position - planetCentre).normalized;
+		// No more planet gravity or orientation!
+		// Just use Unity's default gravity and keep the player upright
 
-		// Align body's up axis with the centre of planet
-		Vector3 localUp = MathUtility.LocalToWorldVector(rigidBody.rotation, Vector3.up);
-		rigidBody.rotation = Quaternion.FromToRotation(localUp, gravityUp) * rigidBody.rotation;
+		// Optionally, keep the player upright (remove if you want to allow tilting)
+		transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, 0);
 
-		rigidBody.linearVelocity = (underwater) ? CalculateNewVelocitySwim(localUp) : CalculateNewVelocity(localUp);
+		// Move as usual
+		rigidBody.linearVelocity = (underwater) ? CalculateNewVelocitySwim(Vector3.up) : CalculateNewVelocity(Vector3.up);
 
 
 	}
@@ -201,15 +200,16 @@ public class FirstPersonController : MonoBehaviour
 	void TerraTest(Vector3 localUp)
 	{
 		float heightOffset = 5f;
-		Vector3 a = transform.position - localUp * (capsuleCollider.height / 2 + capsuleCollider.radius - heightOffset);
-		Vector3 b = transform.position + localUp * (capsuleCollider.height / 2 + capsuleCollider.radius + heightOffset);
+		// Use Vector3.up for flat terrain
+		Vector3 a = transform.position - Vector3.up * (capsuleCollider.height / 2 + capsuleCollider.radius - heightOffset);
+		Vector3 b = transform.position + Vector3.up * (capsuleCollider.height / 2 + capsuleCollider.radius + heightOffset);
 		RaycastHit hitInfo;
 
-		if (Physics.CapsuleCast(a, b, capsuleCollider.radius, -localUp, out hitInfo, heightOffset, terrainMask))
+		if (Physics.CapsuleCast(a, b, capsuleCollider.radius, -Vector3.up, out hitInfo, heightOffset, terrainMask))
 		{
 			hp = hitInfo.point;
-			Vector3 newPos = (hp + transform.up * 1);
-			float deltaY = Vector3.Dot(transform.up, (newPos - transform.position));
+			Vector3 newPos = (hp + Vector3.up * 1);
+			float deltaY = Vector3.Dot(Vector3.up, (newPos - transform.position));
 			if (deltaY > 0.05f)
 			{
 				transform.position = newPos;
@@ -232,13 +232,25 @@ public class FirstPersonController : MonoBehaviour
 	Vector3 hp;
 
 
+	Vector3 CalculateNewVelocity(Vector3 localUp)
+	{
+		// Apply movement and gravity to rigidbody
+		float deltaTime = Time.fixedDeltaTime;
+		Vector3 currentLocalVelocity = MathUtility.WorldToLocalVector(Quaternion.identity, rigidBody.linearVelocity);
+
+		float localYVelocity = currentLocalVelocity.y + (-gravity) * deltaTime;
+
+		Vector3 desiredGlobalVelocity = MathUtility.LocalToWorldVector(Quaternion.identity, desiredLocalVelocity);
+		desiredGlobalVelocity += Vector3.up * localYVelocity;
+		return desiredGlobalVelocity;
+	}
+
 	Vector3 CalculateNewVelocitySwim(Vector3 localUp)
 	{
 		float deltaTime = Time.fixedDeltaTime;
 		Vector3 currentVelocity = rigidBody.linearVelocity;
 
-
-		Vector3 newVelocity = currentVelocity + localUp * (buoyancy - gravity) * deltaTime;
+		Vector3 newVelocity = currentVelocity + Vector3.up * (buoyancy - gravity) * deltaTime;
 		Vector3 drag = -newVelocity * waterDrag;
 		newVelocity += drag * deltaTime;
 
@@ -260,19 +272,6 @@ public class FirstPersonController : MonoBehaviour
 
 
 		return newVelocity;
-	}
-
-	Vector3 CalculateNewVelocity(Vector3 localUp)
-	{
-		// Apply movement and gravity to rigidbody
-		float deltaTime = Time.fixedDeltaTime;
-		Vector3 currentLocalVelocity = MathUtility.WorldToLocalVector(rigidBody.rotation, rigidBody.linearVelocity);
-
-		float localYVelocity = currentLocalVelocity.y + (-gravity) * deltaTime;
-
-		Vector3 desiredGlobalVelocity = MathUtility.LocalToWorldVector(rigidBody.rotation, desiredLocalVelocity);
-		desiredGlobalVelocity += localUp * localYVelocity;
-		return desiredGlobalVelocity;
 	}
 
 	bool IsGrounded()

@@ -185,16 +185,7 @@ public class GenTest : MonoBehaviour
 
 		// TODO: move somewhere more sensible
 		material.SetTexture("DensityTex", originalMap);
-		material.SetFloat("oceanRadius", FindObjectOfType<Water>().radius);
 		material.SetFloat("planetBoundsSize", boundsSize);
-
-		/*
-		if (Input.GetKeyDown(KeyCode.G))
-		{
-			Debug.Log("Generate");
-			GenerateAllChunks();
-		}
-		*/
 	}
 
 
@@ -261,11 +252,9 @@ public class GenTest : MonoBehaviour
 
 	public void Terraform(Vector3 point, float weight, float radius)
 	{
-
 		int editTextureSize = rawDensityTexture.width;
 		float editPixelWorldSize = boundsSize / editTextureSize;
 		int editRadius = Mathf.CeilToInt(radius / editPixelWorldSize);
-		//Debug.Log(editPixelWorldSize + "  " + editRadius);
 
 		float tx = Mathf.Clamp01((point.x + boundsSize / 2) / boundsSize);
 		float ty = Mathf.Clamp01((point.y + boundsSize / 2) / boundsSize);
@@ -275,6 +264,11 @@ public class GenTest : MonoBehaviour
 		int editY = Mathf.RoundToInt(ty * (editTextureSize - 1));
 		int editZ = Mathf.RoundToInt(tz * (editTextureSize - 1));
 
+		// Clamp weight to ensure strong terraforming
+		float minWeight = 10f; // Try 10, 20, or even higher for stronger effect
+		if (Mathf.Abs(weight) < minWeight)
+			weight = minWeight * Mathf.Sign(weight);
+
 		editCompute.SetFloat("weight", weight);
 		editCompute.SetFloat("deltaTime", Time.deltaTime);
 		editCompute.SetInts("brushCentre", editX, editY, editZ);
@@ -283,7 +277,6 @@ public class GenTest : MonoBehaviour
 		editCompute.SetInt("size", editTextureSize);
 		ComputeHelper.Dispatch(editCompute, editTextureSize, editTextureSize, editTextureSize);
 
-		//ProcessDensityMap();
 		int size = rawDensityTexture.width;
 
 		if (blurMap)
@@ -296,18 +289,14 @@ public class GenTest : MonoBehaviour
 			ComputeHelper.Dispatch(blurCompute, k, k, k);
 		}
 
-		//ComputeHelper.CopyRenderTexture3D(originalMap, processedDensityTexture);
-
 		float worldRadius = (editRadius + 1 + ((blurMap) ? blurRadius : 0)) * editPixelWorldSize;
 		for (int i = 0; i < chunks.Length; i++)
 		{
 			Chunk chunk = chunks[i];
 			if (MathUtility.SphereIntersectsBox(point, worldRadius, chunk.centre, Vector3.one * chunk.size))
 			{
-
 				chunk.terra = true;
 				GenerateChunk(chunk);
-
 			}
 		}
 	}

@@ -98,7 +98,15 @@ public class Chunk
 			mesh.SetNormals(processedNormals);
 		}
 
-		collider.sharedMesh = mesh;
+		// Only assign to collider if mesh has vertices
+		if (mesh.vertexCount > 0)
+		{
+			collider.sharedMesh = mesh;
+		}
+		else
+		{
+			collider.sharedMesh = null;
+		}
 	}
 
 	public struct PointData

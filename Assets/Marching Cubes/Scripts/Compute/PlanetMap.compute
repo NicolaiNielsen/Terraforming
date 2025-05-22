@@ -30,7 +30,7 @@ float calculateDensity(int3 cell) {
 
     // Flat terrain at y = 0, with noise for hills
     float noise = fbm(6, 2, 0.5, noiseScale, worldPos) * noiseHeightMultiplier;
-    float surfaceHeight = noise; // You can add a constant to raise/lower the ground
+    float surfaceHeight = noise - 1.0; // Lower the ground so the top is higher
 
     float density = worldPos.y - surfaceHeight;
 

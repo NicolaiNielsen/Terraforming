@@ -9,9 +9,9 @@ public class Terraformer : MonoBehaviour
 
 	public LayerMask terrainMask;
 
-	public float terraformRadius = 5;
-	public float terraformSpeedNear = 0.1f;
-	public float terraformSpeedFar = 0.25f;
+	public float terraformRadius = 20f;
+	public float terraformSpeedNear = 20f;
+	public float terraformSpeedFar = 40f;
 
 
 	Transform cam;
