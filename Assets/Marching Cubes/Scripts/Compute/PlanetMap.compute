@@ -26,21 +26,15 @@ float fbm(int numLayers, float lacunarity, float persistence, float scale, float
 }
 
 float calculateDensity(int3 cell) {
-	float3 worldPos = (cell / float(textureSize-1.0) - 0.5f) * planetSize;
+    float3 worldPos = (cell / float(textureSize-1.0) - 0.5f) * planetSize;
 
-	float halfS = planetSize / 2;
-	float maxD = length(float3(halfS,halfS,halfS));
+    // Flat terrain at y = 0, with noise for hills
+    float noise = fbm(6, 2, 0.5, noiseScale, worldPos) * noiseHeightMultiplier;
+    float surfaceHeight = noise; // You can add a constant to raise/lower the ground
 
-	float fudge = 1;
+    float density = worldPos.y - surfaceHeight;
 
-	float density = length(worldPos) / (maxD + fudge) - 0.5;
-
-	// Noise
-	float noise = fbm(6, 2, 0.5, noiseScale, worldPos) * noiseHeightMultiplier;
-
-	density += noise;
-
-	return density;
+    return density;
 }
 
 [numthreads(8,8,8)]
